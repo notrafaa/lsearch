@@ -5,7 +5,6 @@ export type ChatMessage = {
   role: Role;
   content: string;
   createdAt: string;
-  blocked?: boolean;
   payload?: unknown;
 };
 
@@ -22,13 +21,11 @@ export type UsageLog = {
   endpoint: string;
   status: number;
   queryLabel: string;
-  blocked: boolean;
   createdAt: string;
   localRemaining: number;
 };
 
 export type AppState = {
-  blacklist: string[];
   savedSearches: SavedSearch[];
   usage: UsageLog[];
   localQuota: {

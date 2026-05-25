@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Ban,
   BookmarkPlus,
   ChevronsLeftRight,
   LogOut,
@@ -11,16 +10,14 @@ import {
   RefreshCw,
   Save,
   Search,
-  Shield,
   Trash2,
   WalletCards
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type AppState = {
-  blacklist: string[];
   savedSearches: Array<{ id: string; label: string; kind: "search" | "lookup"; body: Record<string, unknown> }>;
-  usage: Array<{ id: string; endpoint: string; status: number; queryLabel: string; blocked: boolean; createdAt: string }>;
+  usage: Array<{ id: string; endpoint: string; status: number; queryLabel: string; createdAt: string }>;
   localQuota: { dailyLimit: number; used: number; day: string };
 };
 
@@ -36,7 +33,6 @@ type Message = {
   role: "user" | "assistant" | "system";
   text: string;
   payload?: unknown;
-  blocked?: boolean;
 };
 
 const quickFields = [
@@ -62,7 +58,6 @@ export default function Dashboard() {
   ]);
   const [lookupType, setLookupType] = useState("email");
   const [lookupValue, setLookupValue] = useState("");
-  const [blacklistDraft, setBlacklistDraft] = useState("");
   const [dailyLimit, setDailyLimit] = useState(1000);
   const [loading, setLoading] = useState(false);
   const [brixPlan, setBrixPlan] = useState<Record<string, unknown> | null>(null);
@@ -79,7 +74,6 @@ export default function Dashboard() {
     if (!response.ok) return;
     const data = await response.json();
     setState(data.state);
-    setBlacklistDraft((data.state.blacklist || []).join("\n"));
     setDailyLimit(data.state.localQuota.dailyLimit);
     setBrixPlan(data.brix?.data || data.brix || null);
     setBrixRate(data.rateLimit || null);
@@ -122,9 +116,8 @@ export default function Dashboard() {
     setLoading(false);
     append({
       role: "assistant",
-      text: response.ok ? (data.blocked ? data.reason : summarizeResult(data.result)) : data.message || "Recherche impossible",
-      payload: data.blocked || !response.ok ? undefined : data.result,
-      blocked: data.blocked
+      text: response.ok ? summarizeResult(data.result) : data.message || "Recherche impossible",
+      payload: response.ok ? data.result : undefined
     });
     setPrompt("");
     refresh();
@@ -145,9 +138,8 @@ export default function Dashboard() {
     setLoading(false);
     append({
       role: "assistant",
-      text: response.ok ? (data.blocked ? data.reason : summarizeResult(data.result)) : data.message || "Lookup impossible",
-      payload: data.blocked || !response.ok ? undefined : data.result,
-      blocked: data.blocked
+      text: response.ok ? summarizeResult(data.result) : data.message || "Lookup impossible",
+      payload: response.ok ? data.result : undefined
     });
     refresh();
   }
@@ -157,7 +149,6 @@ export default function Dashboard() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        blacklist: blacklistDraft.split("\n"),
         dailyLimit
       })
     });
@@ -247,17 +238,11 @@ export default function Dashboard() {
           <p className="muted">API restante: {brixRate?.dayRemaining ?? "?"}/{brixRate?.dayLimit ?? "?"}</p>
         </section>
 
-        <section className="panel">
+        <section className="panel settings-panel">
           <div className="panel-title">
-            <Shield size={17} />
-            Blacklist
+            <Save size={17} />
+            Parametres
           </div>
-          <textarea
-            className="blacklist"
-            value={blacklistDraft}
-            onChange={(event) => setBlacklistDraft(event.target.value)}
-            placeholder={"Un terme par ligne\nex: Prenom Nom"}
-          />
           <label className="compact-label">
             Quota local journalier
             <input type="number" value={dailyLimit} min={1} onChange={(event) => setDailyLimit(Number(event.target.value))} />
@@ -304,7 +289,7 @@ export default function Dashboard() {
         <header className="topbar">
           <div>
             <h2>Discussion</h2>
-            <p>Analyse OSINT avec quotas, sauvegardes et blocage serveur des donnees sensibles.</p>
+            <p>Analyse OSINT avec quotas, sauvegardes et historique de recherches.</p>
           </div>
           <div className="topbar-actions">
             <button className="icon-button" onClick={refresh} title="Actualiser">
@@ -399,8 +384,8 @@ export default function Dashboard() {
 
         <section className="chat">
           {messages.map((message) => (
-            <article className={`message ${message.role} ${message.blocked ? "blocked" : ""}`} key={message.id}>
-              <div className="avatar">{message.blocked ? <Ban size={16} /> : message.role === "user" ? "U" : "AI"}</div>
+            <article className={`message ${message.role}`} key={message.id}>
+              <div className="avatar">{message.role === "user" ? "U" : "AI"}</div>
               <div>
                 <p>{message.text}</p>
                 {message.payload ? <pre>{JSON.stringify(message.payload, null, 2)}</pre> : null}
@@ -414,9 +399,9 @@ export default function Dashboard() {
         <h2>Historique</h2>
         {state?.usage.length ? (
           state.usage.slice(0, 12).map((item) => (
-            <div className={`activity-item ${item.blocked ? "blocked" : ""}`} key={item.id}>
+            <div className="activity-item" key={item.id}>
               <span>{item.endpoint}</span>
-              <strong>{item.blocked ? "bloque" : item.status}</strong>
+              <strong>{item.status}</strong>
               <p>{item.queryLabel}</p>
             </div>
           ))

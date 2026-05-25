@@ -1,6 +1,6 @@
 # LSearch
 
-Application OSINT locale avec interface Next.js, proxy serveur vers BrixHub, controle des quotas, recherches sauvegardees, historique et blacklist serveur.
+Application OSINT locale avec interface Next.js, proxy serveur vers BrixHub, controle des quotas, recherches sauvegardees et historique.
 
 ## Configuration
 
@@ -14,15 +14,6 @@ npm run dev
 ```
 
 Next.js affiche l'URL de dev a ouvrir dans le terminal.
-
-## Securite blacklist
-
-La blacklist est appliquee cote serveur :
-
-- avant appel API, si la requete contient un terme interdit ;
-- apres appel API, si la reponse JSON contient un terme interdit.
-
-Dans le second cas, la reponse brute n'est pas renvoyee a l'interface. Seul un message de blocage est retourne.
 
 ## Wrapper C++ WebView2
 

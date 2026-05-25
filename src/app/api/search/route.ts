@@ -1,5 +1,5 @@
 import { brixFetch } from "@/lib/brixhub";
-import { blacklistHit, readState, updateState, addUsage } from "@/lib/state";
+import { readState, updateState, addUsage } from "@/lib/state";
 import { parsePrompt, queryLabel, sanitizeSearchBody } from "@/lib/query";
 
 export const runtime = "nodejs";
@@ -20,22 +20,6 @@ export async function POST(request: Request) {
     return Response.json({ message: "Ajoutez au moins un critere de recherche" }, { status: 400 });
   }
 
-  const queryBlockedBy = blacklistHit(searchBody, state.blacklist);
-  if (queryBlockedBy) {
-    await addUsage({
-      endpoint: "/search",
-      status: 0,
-      queryLabel: label,
-      blocked: true,
-      localRemaining: Math.max(0, state.localQuota.dailyLimit - state.localQuota.used)
-    });
-    return Response.json({
-      blocked: true,
-      reason: `Recherche bloquee par la blacklist: ${queryBlockedBy}`,
-      query: searchBody
-    });
-  }
-
   if (state.localQuota.used >= state.localQuota.dailyLimit) {
     return Response.json({ message: "Quota local journalier atteint" }, { status: 429 });
   }
@@ -45,11 +29,10 @@ export async function POST(request: Request) {
     body: JSON.stringify(searchBody)
   });
 
-  const responseBlockedBy = blacklistHit(json, state.blacklist);
   const status = response?.status || json.status || 500;
 
   const nextState = await updateState((draft) => {
-    if (!responseBlockedBy && status < 500) {
+    if (status < 500) {
       draft.localQuota.used += 1;
     }
   });
@@ -58,19 +41,10 @@ export async function POST(request: Request) {
     endpoint: "/search",
     status,
     queryLabel: label,
-    blocked: Boolean(responseBlockedBy),
     localRemaining: Math.max(0, nextState.localQuota.dailyLimit - nextState.localQuota.used)
   });
 
-  if (responseBlockedBy) {
-    return Response.json({
-      blocked: true,
-      reason: `Resultat masque car il contient une entree blacklist: ${responseBlockedBy}`
-    });
-  }
-
   return Response.json({
-    blocked: false,
     result: json,
     query: searchBody,
     rateLimit: {

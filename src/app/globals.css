@@ -220,15 +220,15 @@ textarea {
   border-color: var(--line);
 }
 
-.error,
-.blocked p {
+.error {
   color: var(--danger);
 }
 
 .app-shell {
-  height: 100vh;
+  min-height: 100vh;
+  height: 100dvh;
   display: grid;
-  grid-template-columns: 318px minmax(0, 1fr) 292px;
+  grid-template-columns: minmax(260px, 318px) minmax(0, 1fr) minmax(248px, 292px);
   overflow: hidden;
 }
 
@@ -239,6 +239,7 @@ textarea {
   padding: 18px;
   overflow: auto;
   backdrop-filter: blur(20px);
+  min-width: 0;
 }
 
 .activity {
@@ -330,12 +331,6 @@ textarea {
   background: linear-gradient(90deg, var(--gold), var(--accent), var(--cyan));
 }
 
-.blacklist {
-  min-height: 124px;
-  font-family: var(--font-mono), monospace;
-  font-size: 12px;
-}
-
 .saved-item {
   gap: 8px;
   border-top: 1px solid var(--line);
@@ -355,12 +350,14 @@ textarea {
   gap: 16px;
   padding: 20px;
   overflow: hidden;
+  min-width: 0;
 }
 
 .topbar {
   min-height: 62px;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--line);
+  gap: 16px;
 }
 
 .topbar h2 {
@@ -374,16 +371,19 @@ textarea {
 .topbar-actions,
 .composer-actions {
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .search-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 310px;
+  grid-template-columns: minmax(360px, 1fr) minmax(260px, 310px);
   gap: 16px;
+  min-width: 0;
 }
 
 .composer {
   padding: 15px;
+  min-width: 0;
 }
 
 .field-grid {
@@ -437,11 +437,6 @@ textarea {
 
 .message.user {
   background: linear-gradient(180deg, rgba(34, 32, 25, 0.96), rgba(20, 19, 16, 0.96));
-}
-
-.message.blocked {
-  border-color: rgba(255, 107, 129, 0.56);
-  background: linear-gradient(180deg, rgba(43, 21, 24, 0.96), rgba(20, 13, 14, 0.96));
 }
 
 .avatar {
@@ -499,10 +494,6 @@ pre {
   font-size: 12px;
 }
 
-.activity-item.blocked strong {
-  color: var(--danger);
-}
-
 .activity-item p {
   clear: both;
   margin: 8px 0 0;
@@ -511,13 +502,41 @@ pre {
   font-size: 13px;
 }
 
-@media (max-width: 1100px) {
+@media (min-width: 1500px) {
   .app-shell {
-    grid-template-columns: 278px minmax(0, 1fr);
+    grid-template-columns: 340px minmax(0, 1fr) 320px;
+  }
+
+  .workspace {
+    padding: 24px;
+  }
+
+  .field-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1240px) {
+  .app-shell {
+    height: auto;
+    min-height: 100vh;
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+    overflow: auto;
   }
 
   .activity {
-    display: none;
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    max-height: none;
+  }
+
+  .activity h2,
+  .activity > .muted {
+    grid-column: 1 / -1;
   }
 
   .search-grid {
@@ -525,28 +544,107 @@ pre {
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .app-shell {
-    height: auto;
-    min-height: 100vh;
     grid-template-columns: 1fr;
-    overflow: auto;
   }
 
   .workspace {
     overflow: visible;
+    order: 2;
+    padding: 16px;
   }
 
   .sidebar {
+    order: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 12px;
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
 
+  .sidebar-head {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+  }
+
+  .panel,
+  .lookup-panel {
+    margin-bottom: 0;
+  }
+
+  .activity {
+    order: 3;
+  }
+
+  .topbar {
+    align-items: flex-start;
+  }
+
   .field-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .option-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  body {
+    background-size: 28px 28px, 28px 28px, auto;
+  }
+
+  .login-shell,
+  .workspace,
+  .sidebar,
+  .activity {
+    padding: 12px;
+  }
+
+  .login-panel,
+  .panel,
+  .lookup-panel,
+  .composer,
+  .message,
+  .activity-item {
+    border-radius: 7px;
+  }
+
+  .topbar {
+    display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .topbar h2 {
+    font-size: 24px;
+  }
+
+  .topbar-actions,
+  .composer-actions {
+    width: 100%;
+  }
+
+  .composer-actions .primary-button,
+  .composer-actions .secondary-button,
+  .lookup-panel .secondary-button {
+    flex: 1 1 140px;
+  }
+
+  .field-grid,
+  .option-row,
+  .sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .message {
+    grid-template-columns: 34px minmax(0, 1fr);
+    padding: 12px;
+  }
+
+  .avatar {
+    width: 34px;
+    height: 34px;
   }
 }

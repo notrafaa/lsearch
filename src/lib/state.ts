@@ -9,7 +9,6 @@ const statePath =
   path.join(process.env.VERCEL ? path.join(os.tmpdir(), "lsearch") : path.join(process.cwd(), "data"), "app-state.json");
 
 const defaultState = (): AppState => ({
-  blacklist: [],
   savedSearches: [],
   usage: [],
   localQuota: {
@@ -82,13 +81,4 @@ export async function addSavedSearch(search: Omit<SavedSearch, "id" | "createdAt
     });
     state.savedSearches = state.savedSearches.slice(0, 50);
   });
-}
-
-export function normalizeTerm(term: string) {
-  return term.trim().toLocaleLowerCase("fr-FR");
-}
-
-export function blacklistHit(value: unknown, blacklist: string[]) {
-  const haystack = JSON.stringify(value ?? "").toLocaleLowerCase("fr-FR");
-  return blacklist.map(normalizeTerm).find((term) => term && haystack.includes(term));
 }
