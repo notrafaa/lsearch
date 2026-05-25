@@ -24,6 +24,13 @@ type AppState = {
   localQuota: { dailyLimit: number; used: number; day: string };
 };
 
+type BrixStatus = {
+  configured: boolean;
+  ok: boolean;
+  status: number;
+  message: string | null;
+};
+
 type Message = {
   id: string;
   role: "user" | "assistant" | "system";
@@ -60,6 +67,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [brixPlan, setBrixPlan] = useState<Record<string, unknown> | null>(null);
   const [brixRate, setBrixRate] = useState<Record<string, string | null> | null>(null);
+  const [brixStatus, setBrixStatus] = useState<BrixStatus | null>(null);
 
   const quotaPct = useMemo(() => {
     if (!state) return 0;
@@ -75,6 +83,7 @@ export default function Dashboard() {
     setDailyLimit(data.state.localQuota.dailyLimit);
     setBrixPlan(data.brix?.data || data.brix || null);
     setBrixRate(data.rateLimit || null);
+    setBrixStatus(data.brixStatus || null);
   }
 
   useEffect(() => {
@@ -202,6 +211,12 @@ export default function Dashboard() {
     window.location.href = "/login";
   }
 
+  const planLabel = useMemo(() => {
+    if (!brixStatus?.configured) return "cle absente";
+    if (!brixStatus.ok) return `erreur ${brixStatus.status}`;
+    return String(brixPlan?.plan || "indisponible");
+  }, [brixPlan, brixStatus]);
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -227,7 +242,8 @@ export default function Dashboard() {
           <div className="meter">
             <span style={{ width: `${quotaPct}%` }} />
           </div>
-          <p className="muted">Plan API: {String(brixPlan?.plan || "non charge")}</p>
+          <p className="muted">Plan API: {planLabel}</p>
+          {brixStatus?.message && !brixStatus.ok ? <p className="muted">{brixStatus.message}</p> : null}
           <p className="muted">API restante: {brixRate?.dayRemaining ?? "?"}/{brixRate?.dayLimit ?? "?"}</p>
         </section>
 

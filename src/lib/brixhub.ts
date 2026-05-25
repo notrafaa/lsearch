@@ -20,7 +20,7 @@ export async function brixFetch(
       response: null,
       json: {
         status: 500,
-        message: "BRIXHUB_API_KEY manquante dans .env.local",
+        message: "BRIXHUB_API_KEY manquante dans les variables d'environnement serveur",
         data: null
       } satisfies BrixResponse
     };
