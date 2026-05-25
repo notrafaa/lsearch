@@ -1,9 +1,12 @@
 import { promises as fs } from "fs";
+import os from "os";
 import path from "path";
 import { randomUUID } from "crypto";
 import type { AppState, SavedSearch, UsageLog } from "./types";
 
-const statePath = path.join(process.cwd(), "data", "app-state.json");
+const statePath =
+  process.env.LSEARCH_STATE_PATH ||
+  path.join(process.env.VERCEL ? path.join(os.tmpdir(), "lsearch") : path.join(process.cwd(), "data"), "app-state.json");
 
 const defaultState = (): AppState => ({
   blacklist: [],
@@ -37,14 +40,18 @@ export async function readState(): Promise<AppState> {
     return state;
   } catch {
     const state = defaultState();
-    await writeState(state);
+    await writeState(state).catch(() => undefined);
     return state;
   }
 }
 
 export async function writeState(state: AppState) {
-  await ensureDataDir();
-  await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8");
+  try {
+    await ensureDataDir();
+    await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8");
+  } catch {
+    // Serverless providers may discard or deny local writes. The API should keep responding.
+  }
 }
 
 export async function updateState(mutator: (state: AppState) => void | Promise<void>) {
