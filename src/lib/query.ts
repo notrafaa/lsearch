@@ -73,7 +73,7 @@ export function sanitizeSearchBody(input: Record<string, unknown>) {
 
 export function parsePrompt(prompt: string) {
   const body: Record<string, unknown> = {};
-  const tokenRegex = /([\w_]+):("[^"]+"|'[^']+'|[^\s]+)/g;
+  const tokenRegex = /(?:\/|)([\w_]+)(?::|\s+)("[^"]+"|'[^']+'|[^\s]+)/g;
   let match: RegExpExecArray | null;
 
   while ((match = tokenRegex.exec(prompt))) {
@@ -89,8 +89,28 @@ export function parsePrompt(prompt: string) {
     }
   }
 
+  const clean = prompt
+    .replace(tokenRegex, " ")
+    .replace(/\b(je\s+veux|trouve|trouver|cherche|chercher|recherche|retrouve|retrouver|la\s+personne|une\s+personne|stp|svp)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const email = prompt.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0];
+  const phone = prompt.match(/(?:\+33|0033|0)[1-9](?:[\s.-]?\d{2}){4}/)?.[0];
+  const city = prompt.match(/\b(?:a|à|sur|ville)\s+([A-Za-zÀ-ÿ' -]{2,})$/i)?.[1]?.trim();
+
+  if (email && !body.email) body.email = email;
+  if (phone && !body.telephone) body.telephone = phone;
+  if (city && !body.ville) body.ville = city;
+
   if (Object.keys(body).length === 0 && prompt.trim()) {
-    body.nom_affichage = prompt.trim();
+    const parts = clean.split(" ").filter(Boolean);
+    if (parts.length >= 2 && parts.length <= 4) {
+      body.prenom = parts[0];
+      body.nom_famille = parts.slice(1).join(" ");
+    } else {
+      body.nom_affichage = clean || prompt.trim();
+    }
     body.flexible = true;
   }
 

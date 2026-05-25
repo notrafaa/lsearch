@@ -1,6 +1,6 @@
 # LSearch
 
-Application OSINT locale avec interface Next.js, proxy serveur vers BrixHub, controle des quotas, recherches sauvegardees et historique.
+Application OSINT locale avec interface Next.js, proxy serveur vers BrixHub, recherche conversationnelle, recherches sauvegardees et historique.
 
 ## Configuration
 

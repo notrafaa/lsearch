@@ -32,7 +32,7 @@ export default function LoginPage() {
       <section className="login-panel">
         <div className="brand-mark">LS</div>
         <h1>LSearch</h1>
-        <p>Console OSINT privee avec quotas, recherches sauvegardees et historique structure.</p>
+        <p>Console OSINT privee avec recherche conversationnelle, sauvegardes et historique structure.</p>
         <form onSubmit={submit} className="login-form">
           <label>
             <span>Username</span>
