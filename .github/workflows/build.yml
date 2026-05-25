@@ -1,0 +1,47 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  nextjs:
+    name: Next.js
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build
+
+  native:
+    name: Native WebView2
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S native -B native/build -A x64
+
+      - name: Build
+        run: cmake --build native/build --config Release
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: LSearch-windows-x64
+          path: native/build/Release/LSearch.exe
