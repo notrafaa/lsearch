@@ -11,53 +11,10 @@ using Microsoft::WRL::ComPtr;
 
 namespace {
 constexpr wchar_t kWindowClass[] = L"LSearchWebView";
-constexpr wchar_t kDefaultUrl[] = L"http://localhost:3000";
+constexpr wchar_t kUrlEnvName[] = L"LSEARCH_URL";
 
 ComPtr<ICoreWebView2Controller> controller;
 ComPtr<ICoreWebView2> webview;
-PROCESS_INFORMATION serverProcess = {};
-HANDLE serverJob = nullptr;
-
-bool fileExists(const std::wstring& path) {
-  DWORD attrs = GetFileAttributesW(path.c_str());
-  return attrs != INVALID_FILE_ATTRIBUTES && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
-}
-
-bool directoryExists(const std::wstring& path) {
-  DWORD attrs = GetFileAttributesW(path.c_str());
-  return attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY);
-}
-
-std::wstring parentPath(const std::wstring& path) {
-  size_t pos = path.find_last_of(L"\\/");
-  if (pos == std::wstring::npos) return L"";
-  return path.substr(0, pos);
-}
-
-std::wstring findProjectRootFrom(std::wstring start) {
-  if (fileExists(start + L"\\package.json")) return start;
-  for (int i = 0; i < 8; ++i) {
-    start = parentPath(start);
-    if (start.empty()) break;
-    if (fileExists(start + L"\\package.json")) return start;
-  }
-  return L"";
-}
-
-std::wstring findProjectRoot() {
-  wchar_t currentDir[MAX_PATH] = {};
-  if (GetCurrentDirectoryW(MAX_PATH, currentDir)) {
-    std::wstring root = findProjectRootFrom(currentDir);
-    if (!root.empty()) return root;
-  }
-
-  wchar_t modulePath[MAX_PATH] = {};
-  if (GetModuleFileNameW(nullptr, modulePath, MAX_PATH)) {
-    return findProjectRootFrom(parentPath(modulePath));
-  }
-
-  return L"";
-}
 
 std::vector<std::wstring> readArgs() {
   int argc = 0;
@@ -72,85 +29,27 @@ std::vector<std::wstring> readArgs() {
   return args;
 }
 
-bool shouldStartServer(const std::vector<std::wstring>& args) {
+bool isHttpUrl(const std::wstring& value) {
+  return value.rfind(L"http://", 0) == 0 || value.rfind(L"https://", 0) == 0;
+}
+
+std::wstring readUrlFromEnvironment() {
+  DWORD required = GetEnvironmentVariableW(kUrlEnvName, nullptr, 0);
+  if (required == 0) return L"";
+
+  std::wstring value(required, L'\0');
+  DWORD written = GetEnvironmentVariableW(kUrlEnvName, value.data(), required);
+  if (written == 0) return L"";
+
+  value.resize(written);
+  return isHttpUrl(value) ? value : L"";
+}
+
+std::wstring readUrl(const std::vector<std::wstring>& args) {
   for (const auto& arg : args) {
-    if (arg == L"--no-server") return false;
+    if (isHttpUrl(arg)) return arg;
   }
-  return true;
-}
-
-std::wstring readUrlFromArgs(const std::vector<std::wstring>& args) {
-  std::wstring url = kDefaultUrl;
-  for (const auto& arg : args) {
-    if (arg.rfind(L"http://", 0) == 0 || arg.rfind(L"https://", 0) == 0) {
-      url = arg;
-      break;
-    }
-  }
-  return url;
-}
-
-void startNextServer(HWND hwnd, const std::wstring& projectRoot) {
-  if (projectRoot.empty()) {
-    MessageBoxW(hwnd, L"Impossible de trouver package.json. Lancez LSearch depuis le dossier du projet ou passez une URL.", L"LSearch", MB_ICONWARNING);
-    return;
-  }
-
-  const bool hasBuild = directoryExists(projectRoot + L"\\.next");
-  std::wstring command = hasBuild ? L"cmd.exe /c npm run start -- -p 3000" : L"cmd.exe /c npm run dev -- -p 3000";
-
-  STARTUPINFOW startup = {};
-  startup.cb = sizeof(startup);
-  startup.dwFlags = STARTF_USESHOWWINDOW;
-  startup.wShowWindow = SW_HIDE;
-
-  std::wstring mutableCommand = command;
-  serverJob = CreateJobObjectW(nullptr, nullptr);
-  if (serverJob) {
-    JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits = {};
-    limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-    SetInformationJobObject(serverJob, JobObjectExtendedLimitInformation, &limits, sizeof(limits));
-  }
-
-  if (!CreateProcessW(
-          nullptr,
-          mutableCommand.data(),
-          nullptr,
-          nullptr,
-          FALSE,
-          CREATE_NO_WINDOW,
-          nullptr,
-          projectRoot.c_str(),
-          &startup,
-          &serverProcess)) {
-    if (serverJob) {
-      CloseHandle(serverJob);
-      serverJob = nullptr;
-    }
-    MessageBoxW(hwnd, L"Impossible de lancer le serveur Next.js. Verifiez que Node.js et npm sont disponibles.", L"LSearch", MB_ICONWARNING);
-    return;
-  }
-
-  if (serverJob) {
-    AssignProcessToJobObject(serverJob, serverProcess.hProcess);
-  }
-}
-
-void stopNextServer() {
-  if (serverProcess.hProcess) {
-    if (serverJob) {
-      TerminateJobObject(serverJob, 0);
-    } else {
-      TerminateProcess(serverProcess.hProcess, 0);
-    }
-    CloseHandle(serverProcess.hProcess);
-    CloseHandle(serverProcess.hThread);
-    serverProcess = {};
-  }
-  if (serverJob) {
-    CloseHandle(serverJob);
-    serverJob = nullptr;
-  }
+  return readUrlFromEnvironment();
 }
 
 void resizeWebView(HWND hwnd) {
@@ -166,7 +65,6 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
       resizeWebView(hwnd);
       return 0;
     case WM_DESTROY:
-      stopNextServer();
       PostQuitMessage(0);
       return 0;
     default:
@@ -176,8 +74,15 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
 }  // namespace
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand) {
-  const std::vector<std::wstring> args = readArgs();
-  const std::wstring url = readUrlFromArgs(args);
+  const std::wstring url = readUrl(readArgs());
+  if (url.empty()) {
+    MessageBoxW(
+        nullptr,
+        L"Indiquez l'URL de l'application en argument ou via la variable LSEARCH_URL.",
+        L"LSearch",
+        MB_ICONERROR);
+    return 1;
+  }
 
   WNDCLASSW windowClass = {};
   windowClass.lpfnWndProc = windowProc;
@@ -202,11 +107,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand) {
 
   if (!hwnd) return 1;
   ShowWindow(hwnd, showCommand);
-
-  if (url == kDefaultUrl && shouldStartServer(args)) {
-    startNextServer(hwnd, findProjectRoot());
-    Sleep(1200);
-  }
 
   HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
       nullptr,

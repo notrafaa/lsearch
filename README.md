@@ -13,7 +13,7 @@ npm install
 npm run dev
 ```
 
-Le site ecoute par defaut sur `http://localhost:3000`.
+Next.js affiche l'URL de dev a ouvrir dans le terminal.
 
 ## Securite blacklist
 
@@ -31,7 +31,6 @@ Prérequis Windows :
 - Visual Studio 2022 avec Desktop development with C++;
 - CMake 3.20+ ;
 - Microsoft Edge WebView2 Runtime.
-- Node.js et npm disponibles dans le PATH.
 
 Compilation :
 
@@ -43,11 +42,12 @@ cmake --build native\build --config Release
 Lancement :
 
 ```powershell
-.\native\build\Release\LSearch.exe
+.\native\build\Release\LSearch.exe https://votre-domaine.example
 ```
 
-Sans argument, le wrapper trouve le dossier du projet, lance le serveur Next.js local en arriere-plan sur `http://localhost:3000`, puis charge l'interface dans une fenetre native WebView2. Pour charger une URL deja lancee :
+Vous pouvez aussi definir l'URL une fois via une variable d'environnement :
 
 ```powershell
-.\native\build\Release\LSearch.exe http://localhost:3000 --no-server
+setx LSEARCH_URL "https://votre-domaine.example"
+.\native\build\Release\LSearch.exe
 ```
