@@ -2,6 +2,7 @@
 #include <wrl.h>
 #include <shellapi.h>
 #include <windows.h>
+#include <windowsx.h>
 
 #include <string>
 #include <vector>
@@ -13,6 +14,7 @@ namespace {
 constexpr wchar_t kWindowClass[] = L"LSearchWebView";
 constexpr wchar_t kDefaultUrl[] = L"https://lsearch.vercel.app/";
 constexpr wchar_t kUrlEnvName[] = L"LSEARCH_URL";
+constexpr int kResizeBorder = 8;
 
 ComPtr<ICoreWebView2Controller> controller;
 ComPtr<ICoreWebView2> webview;
@@ -61,8 +63,67 @@ void resizeWebView(HWND hwnd) {
   controller->put_Bounds(bounds);
 }
 
+bool isMaximized(HWND hwnd) {
+  WINDOWPLACEMENT placement = {};
+  placement.length = sizeof(WINDOWPLACEMENT);
+  return GetWindowPlacement(hwnd, &placement) && placement.showCmd == SW_SHOWMAXIMIZED;
+}
+
+void toggleMaximize(HWND hwnd) {
+  ShowWindow(hwnd, isMaximized(hwnd) ? SW_RESTORE : SW_MAXIMIZE);
+}
+
+void beginWindowDrag(HWND hwnd) {
+  ReleaseCapture();
+  SendMessageW(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+}
+
+LRESULT hitTestResizeBorder(HWND hwnd, LPARAM lparam) {
+  POINT point = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+  RECT rect = {};
+  GetWindowRect(hwnd, &rect);
+
+  const bool left = point.x >= rect.left && point.x < rect.left + kResizeBorder;
+  const bool right = point.x <= rect.right && point.x > rect.right - kResizeBorder;
+  const bool top = point.y >= rect.top && point.y < rect.top + kResizeBorder;
+  const bool bottom = point.y <= rect.bottom && point.y > rect.bottom - kResizeBorder;
+
+  if (top && left) return HTTOPLEFT;
+  if (top && right) return HTTOPRIGHT;
+  if (bottom && left) return HTBOTTOMLEFT;
+  if (bottom && right) return HTBOTTOMRIGHT;
+  if (left) return HTLEFT;
+  if (right) return HTRIGHT;
+  if (top) return HTTOP;
+  if (bottom) return HTBOTTOM;
+  return HTCLIENT;
+}
+
+void handleWebMessage(HWND hwnd, ICoreWebView2WebMessageReceivedEventArgs* args) {
+  LPWSTR json = nullptr;
+  if (FAILED(args->get_WebMessageAsJson(&json)) || !json) return;
+
+  const std::wstring message(json);
+  CoTaskMemFree(json);
+
+  if (message.find(L"minimize") != std::wstring::npos) {
+    ShowWindow(hwnd, SW_MINIMIZE);
+  } else if (message.find(L"maximize") != std::wstring::npos) {
+    toggleMaximize(hwnd);
+  } else if (message.find(L"close") != std::wstring::npos) {
+    PostMessageW(hwnd, WM_CLOSE, 0, 0);
+  } else if (message.find(L"drag") != std::wstring::npos && !isMaximized(hwnd)) {
+    beginWindowDrag(hwnd);
+  }
+}
+
 LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
   switch (message) {
+    case WM_NCHITTEST: {
+      LRESULT resizeHit = hitTestResizeBorder(hwnd, lparam);
+      if (resizeHit != HTCLIENT) return resizeHit;
+      return HTCLIENT;
+    }
     case WM_SIZE:
       resizeWebView(hwnd);
       return 0;
@@ -85,10 +146,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand) {
   RegisterClassW(&windowClass);
 
   HWND hwnd = CreateWindowExW(
-      0,
+      WS_EX_APPWINDOW,
       kWindowClass,
       L"LSearch",
-      WS_OVERLAPPEDWINDOW,
+      WS_POPUP | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU,
       CW_USEDEFAULT,
       CW_USEDEFAULT,
       1280,
@@ -123,6 +184,15 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand) {
 
                       controller = newController;
                       controller->get_CoreWebView2(&webview);
+                      EventRegistrationToken token = {};
+                      webview->add_WebMessageReceived(
+                          Callback<ICoreWebView2WebMessageReceivedEventHandler>(
+                              [hwnd](ICoreWebView2*, ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT {
+                                handleWebMessage(hwnd, args);
+                                return S_OK;
+                              })
+                              .Get(),
+                          &token);
                       resizeWebView(hwnd);
                       webview->Navigate(url.c_str());
                       return S_OK;

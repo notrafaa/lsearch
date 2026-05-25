@@ -55,6 +55,87 @@ button:disabled {
   opacity: 0.62;
 }
 
+.native-host body {
+  padding-top: 44px;
+}
+
+.native-titlebar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 1000;
+  height: 44px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(25, 25, 21, 0.98), rgba(12, 12, 10, 0.98));
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+  user-select: none;
+}
+
+.native-titlebar-drag {
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+}
+
+.native-titlebar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.native-titlebar-brand span {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #151908;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.native-titlebar-brand strong {
+  overflow: hidden;
+  color: var(--muted-strong);
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.native-titlebar-actions {
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 46px);
+}
+
+.native-titlebar-actions button {
+  width: 46px;
+  height: 44px;
+  border: 0;
+  border-left: 1px solid rgba(230, 217, 184, 0.07);
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted-strong);
+}
+
+.native-titlebar-actions button:hover {
+  background: rgba(214, 255, 127, 0.1);
+  color: var(--text);
+}
+
+.native-titlebar-actions button.close:hover {
+  background: #d93d4f;
+  color: #fff;
+}
+
 .login-shell {
   min-height: 100vh;
   display: grid;
@@ -230,6 +311,12 @@ textarea {
   display: grid;
   grid-template-columns: minmax(260px, 318px) minmax(0, 1fr) minmax(248px, 292px);
   overflow: hidden;
+}
+
+.native-host .app-shell,
+.native-host .login-shell {
+  min-height: calc(100vh - 44px);
+  height: calc(100dvh - 44px);
 }
 
 .sidebar,
