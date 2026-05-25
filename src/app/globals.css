@@ -1,5 +1,6 @@
 :root {
   color-scheme: dark;
+  --native-titlebar-height: 44px;
   --bg: #0a0a09;
   --bg-soft: #10100e;
   --panel: rgba(23, 23, 20, 0.9);
@@ -56,14 +57,16 @@ button:disabled {
 }
 
 .native-host body {
-  padding-top: 44px;
+  padding-top: var(--native-titlebar-height);
 }
 
 .native-titlebar {
   position: fixed;
-  inset: 0 0 auto;
+  top: -1px;
+  right: 0;
+  left: 0;
   z-index: 1000;
-  height: 44px;
+  height: calc(var(--native-titlebar-height) + 1px);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -118,7 +121,7 @@ button:disabled {
 
 .native-titlebar-actions button {
   width: 46px;
-  height: 44px;
+  height: calc(var(--native-titlebar-height) + 1px);
   border: 0;
   border-left: 1px solid rgba(230, 217, 184, 0.07);
   border-radius: 0;
@@ -315,8 +318,8 @@ textarea {
 
 .native-host .app-shell,
 .native-host .login-shell {
-  min-height: calc(100vh - 44px);
-  height: calc(100dvh - 44px);
+  min-height: calc(100vh - var(--native-titlebar-height));
+  height: calc(100dvh - var(--native-titlebar-height));
 }
 
 .sidebar,
