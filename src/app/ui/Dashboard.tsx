@@ -50,7 +50,7 @@ export default function Dashboard() {
     {
       id: "hello",
       role: "assistant",
-      text: "Pret. Decris ta recherche en langage naturel ou utilise les champs rapides."
+      text: "Console prete. Compose une recherche, lance un lookup, ou charge une operation sauvegardee."
     }
   ]);
   const [lookupType, setLookupType] = useState("email");
@@ -209,7 +209,7 @@ export default function Dashboard() {
           <div className="brand-mark">LS</div>
           <div>
             <h1>LSearch</h1>
-            <p>OSINT console</p>
+            <p>private intelligence</p>
           </div>
         </div>
 
@@ -288,7 +288,7 @@ export default function Dashboard() {
         <header className="topbar">
           <div>
             <h2>Discussion</h2>
-            <p>Les resultats contenant une entree blacklist sont bloques cote serveur.</p>
+            <p>Analyse OSINT avec quotas, sauvegardes et blocage serveur des donnees sensibles.</p>
           </div>
           <div className="topbar-actions">
             <button className="icon-button" onClick={refresh} title="Actualiser">

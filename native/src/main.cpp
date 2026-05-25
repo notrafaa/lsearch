@@ -11,6 +11,7 @@ using Microsoft::WRL::ComPtr;
 
 namespace {
 constexpr wchar_t kWindowClass[] = L"LSearchWebView";
+constexpr wchar_t kDefaultUrl[] = L"https://lsearch.vercel.app/";
 constexpr wchar_t kUrlEnvName[] = L"LSEARCH_URL";
 
 ComPtr<ICoreWebView2Controller> controller;
@@ -49,7 +50,8 @@ std::wstring readUrl(const std::vector<std::wstring>& args) {
   for (const auto& arg : args) {
     if (isHttpUrl(arg)) return arg;
   }
-  return readUrlFromEnvironment();
+  std::wstring envUrl = readUrlFromEnvironment();
+  return envUrl.empty() ? kDefaultUrl : envUrl;
 }
 
 void resizeWebView(HWND hwnd) {
@@ -75,15 +77,6 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand) {
   const std::wstring url = readUrl(readArgs());
-  if (url.empty()) {
-    MessageBoxW(
-        nullptr,
-        L"Indiquez l'URL de l'application en argument ou via la variable LSEARCH_URL.",
-        L"LSearch",
-        MB_ICONERROR);
-    return 1;
-  }
-
   WNDCLASSW windowClass = {};
   windowClass.lpfnWndProc = windowProc;
   windowClass.hInstance = instance;

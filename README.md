@@ -42,10 +42,10 @@ cmake --build native\build --config Release
 Lancement :
 
 ```powershell
-.\native\build\Release\LSearch.exe https://votre-domaine.example
+.\native\build\Release\LSearch.exe
 ```
 
-Vous pouvez aussi definir l'URL une fois via une variable d'environnement :
+Le wrapper ouvre automatiquement `https://lsearch.vercel.app/`. Vous pouvez le surcharger en passant une URL ou via une variable d'environnement :
 
 ```powershell
 setx LSEARCH_URL "https://votre-domaine.example"
